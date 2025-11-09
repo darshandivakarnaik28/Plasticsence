@@ -114,10 +114,12 @@ export default function Home() {
         };
         setHistory(prev => [newHistoryItem, ...prev].slice(0, 20));
 
-        setTotalDetections(prev => prev + 1);
-        setAvgConfidence(prev => {
-          const newTotal = totalDetections + 1;
-          return Math.round(((prev * totalDetections) + data.confidence) / newTotal);
+        setTotalDetections(prev => {
+          const newTotal = prev + 1;
+          setAvgConfidence(prevAvg => {
+            return Math.round(((prevAvg * prev) + data.confidence) / newTotal);
+          });
+          return newTotal;
         });
 
         toast({
