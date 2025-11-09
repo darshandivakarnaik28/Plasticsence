@@ -4,10 +4,18 @@ import DetectionResults from '@/components/DetectionResults';
 import RecyclingInfo from '@/components/RecyclingInfo';
 import ControlPanel from '@/components/ControlPanel';
 import StatsDisplay from '@/components/StatsDisplay';
+import DetectionHistory from '@/components/DetectionHistory';
 import ThemeToggle from '@/components/ThemeToggle';
 import { Recycle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { ResinCode } from '@shared/schema';
+
+interface HistoryItem {
+  id: string;
+  resinCode: ResinCode;
+  confidence: number;
+  timestamp: number;
+}
 
 export default function Home() {
   const [isDetecting, setIsDetecting] = useState(false);
@@ -15,6 +23,7 @@ export default function Home() {
   const [detectedResinCode, setDetectedResinCode] = useState<ResinCode | null>(null);
   const [confidence, setConfidence] = useState(0);
   const [detectionBox, setDetectionBox] = useState<any>(null);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
   
   const [totalDetections, setTotalDetections] = useState(0);
   const [avgConfidence, setAvgConfidence] = useState(0);
@@ -82,8 +91,11 @@ export default function Home() {
       const data = await response.json();
 
       if (data.plasticDetected && data.resinCode) {
-        setDetectedResinCode(data.resinCode as ResinCode);
-        setConfidence(Math.round(data.confidence));
+        const resinCode = data.resinCode as ResinCode;
+        const roundedConfidence = Math.round(data.confidence);
+        
+        setDetectedResinCode(resinCode);
+        setConfidence(roundedConfidence);
         
         setDetectionBox({
           x: 200,
@@ -91,8 +103,16 @@ export default function Home() {
           width: 300,
           height: 250,
           label: `Resin #${data.resinCode}`,
-          confidence: Math.round(data.confidence),
+          confidence: roundedConfidence,
         });
+
+        const newHistoryItem: HistoryItem = {
+          id: Date.now().toString(),
+          resinCode,
+          confidence: roundedConfidence,
+          timestamp: Date.now(),
+        };
+        setHistory(prev => [newHistoryItem, ...prev].slice(0, 20));
 
         setTotalDetections(prev => prev + 1);
         setAvgConfidence(prev => {
@@ -186,6 +206,17 @@ export default function Home() {
             {detectedResinCode && (
               <RecyclingInfo resinCode={detectedResinCode} />
             )}
+
+            <DetectionHistory
+              history={history}
+              onClear={() => {
+                setHistory([]);
+                toast({
+                  title: "History cleared",
+                  description: "Detection history has been cleared",
+                });
+              }}
+            />
           </div>
         </div>
       </main>
